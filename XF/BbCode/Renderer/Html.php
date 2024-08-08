@@ -12,7 +12,7 @@ class Html extends XFCP_Html
     {
         if (!is_array($option))
         {
-            if (strpos($option, '|') && \XF::options()->CMTV_Code_backComp)
+            if (strpos($option ?? '', '|') && \XF::options()->CMTV_Code_backComp)
             {
                 $strrstr = function ($h, $n, $before = false)
                 {
