@@ -1,4 +1,4 @@
-(function ($)
+((window, document) =>
 {
     "use strict";
 
@@ -29,12 +29,13 @@
             this.__init(overlay);
 
             var switcherAttr = '[data-xf-init="code-editor-switcher-container"]';
+            var switcherAttrElement = overlay.container.querySelector(switcherAttr);
 
-            this.CMTV_Code_switcherH = XF.Element.getHandler(overlay.$container.find(switcherAttr), 'code-editor-switcher-container');
-            this.CMTV_Code_defaultLanguage = $('#editor_code_type').val();
+            this.CMTV_Code_switcherH = XF.Element.getHandler(switcherAttrElement, 'code-editor-switcher-container');
+            this.CMTV_Code_defaultLanguage = document.getElementById('editor_code_type').value;
             this.CMTV_Code_init = false;
 
-            overlay.$container.find(switcherAttr).on('code-editor:init', XF.proxy(this, 'setDefaultLanguage'));
+            XF.on(switcherAttrElement, 'code-editor:init', this.setDefaultLanguage.bind(this))
         },
 
         submit: function (e)
@@ -45,43 +46,46 @@
 
             e.preventDefault();
 
-            var ed = this.ed,
-                overlay = this.overlay;
+            const ed = this.ed;
+            const overlay = this.overlay;
 
-            var $codeMirror = overlay.$container.find('.CodeMirror');
-            if ($codeMirror.length)
+            const codeMirror = overlay.container.querySelector('.CodeMirror');
+            if (codeMirror)
             {
-                var codeMirror = $codeMirror[0].CodeMirror,
-                    doc = codeMirror.getDoc();
+                const instance = codeMirror.CodeMirror;
+                const doc = instance.getDoc();
 
-                codeMirror.save();
+                instance.save();
                 doc.setValue('');
 
-                codeMirror.setOption('mode', '');
+                instance.setOption('mode', '');
             }
 
-            var $type = $('#editor_code_type'),
-                $code = $('#editor_code_code'),
-                $title = $('#editor_code_title'),
-                $highlight = $('#editor_code_highlight');
+            const type = document.querySelector('#editor_code_type'),
+                code = document.querySelector('#editor_code_code'),
+                title = document.querySelector('#editor_code_title'),
+                highlight = document.querySelector('#editor_code_title');
 
             ed.selection.restore();
-            XF.EditorHelpers.insertCode(ed, $type.val(), $code.val(), {
-                title: $title.val().trim(),
-                highlight: $highlight.val().trim()
+            XF.EditorHelpers.insertCode(ed, type.value, code.value, {
+                title: title.value.trim(),
+                highlight: highlight.value.trim()
             });
 
             overlay.hide();
 
-            $code.val('');
-            $type.val(this.CMTV_Code_defaultLanguage);
-            $title.val('');
-            $highlight.val('');
+            code.value = '';
+            type.value = this.CMTV_Code_defaultLanguage;
+            title.value = '';
+            highlight.value = '';
         },
 
         setDefaultLanguage: function ()
         {
-            this.overlay.$container.find('[data-xf-init="code-editor"]').data('lang', '').focus();
+            const codeEditor = this.overlay.container.querySelector('[data-xf-init="code-editor"]');
+            codeEditor.setAttribute('data-lang', '');
+            codeEditor.focus();
+
             this.CMTV_Code_switcherH.change();
         }
     });
@@ -92,21 +96,29 @@
         // COPIED FROM editor.js !!!
         //
 
-        var tag, lang, output;
+        let tag;
+        let lang;
+        let output;
 
         switch (type.toLowerCase())
         {
-            case '': tag = 'CODE'; lang = ''; break;
-            default: tag = 'CODE'; lang = type.toLowerCase(); break;
+            case '':
+                tag = 'CODE';
+                lang = '';
+                break;
+            default:
+                tag = 'CODE';
+                lang = type.toLowerCase();
+                break;
         }
 
         code = code.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-            .replace(/\t/g, '    ')
-            .replace(/\n /g, '\n&nbsp;')
-            .replace(/  /g, '&nbsp; ')
-            .replace(/  /g, ' &nbsp;') // need to do this twice to catch a situation where there are an odd number of spaces
-            .replace(/\n/g, '</p><p>');
+                   .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                   .replace(/\t/g, '    ')
+                   .replace(/\n /g, '\n&nbsp;')
+                   .replace(/ {2}/g, '&nbsp; ')
+                   .replace(/ {2}/g, ' &nbsp;') // need to do this twice to catch a situation where there are an odd number of spaces
+                   .replace(/\n/g, '</p><p>');
 
         if (!extra.title && !extra.highlight)
         {
@@ -117,14 +129,16 @@
             output = '[' + tag + (lang ? ' lang="' + lang + '"' : '') + (extra.title ? ' title="' + extra.title + '"' : '') + (extra.highlight ? ' highlight="' + extra.highlight + '"' : '') + ']' + code + '[/' + tag + ']';
         }
 
-
         if (output.match(/<\/p>/i))
         {
             output = '<p>' + output + '</p>';
             output = output.replace(/<p><\/p>/g, '<p><br></p>');
         }
 
+        ed.undo.saveStep();
         ed.html.insert(output);
+        ed.undo.saveStep();
+
+        XF.EditorHelpers.normalizeAfterInsert(ed);
     }
-})
-(jQuery);
+})(window, document)

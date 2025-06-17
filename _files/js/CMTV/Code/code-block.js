@@ -1,15 +1,15 @@
 var CMTV_Code = window.CMTV_Code || {};
 
-(function ($)
+((window, document) =>
 {
     "use strict";
 
     CMTV_Code.CodeBlock = XF.Element.newHandler({
-        $expand: null,
-        $collapse: null,
-        $codeContainer: null,
-        $pre: null,
-        $code: null,
+        expand: null,
+        collapse: null,
+        codeContainer: null,
+        pre: null,
+        code: null,
 
         eCodeBlockH: null,
         resizerH: null,
@@ -21,18 +21,21 @@ var CMTV_Code = window.CMTV_Code || {};
 
         init: function ()
         {
-            this.$expand =          this.$target.find('.action--expand');
-            this.$collapse =        this.$target.find('.action--collapse');
-            this.$codeContainer =   this.$target.find('.bbCodeBlock-content');
-            this.$pre =             this.$target.find('pre');
-            this.$code =            this.$target.find('code');
+            this.expand = this.target.querySelector('.action--expand');
+            this.collapse = this.target.querySelector('.action--collapse');
+            this.codeContainer = this.target.querySelector('.bbCodeBlock-content');
+            this.pre = this.target.querySelector('pre');
+            this.code = this.target.querySelector('code');
 
-            this.eCodeBlockH = XF.Element.getHandler(this.$pre, 'CMTV-code-block-extend');
-            this.resizerH = XF.Element.getHandler(this.$target.find('[data-xf-init="CMTV-code-block-resizer"]'), 'CMTV-code-block-resizer');
+            this.eCodeBlockH = XF.Element.getHandler(this.pre, 'CMTV-code-block-extend');
+            this.resizerH = XF.Element.getHandler(
+                this.target.querySelector('[data-xf-init="CMTV-code-block-resizer"]'),
+                'CMTV-code-block-resizer'
+            );
 
             this.resizeButtons = {
-                $expand: this.$target.find('.action--expand'),
-                $collapse: this.$target.find('.action--collapse')
+                expand: this.expand,
+                collapse: this.collapse
             };
 
             this.registerVisibleCatcher();
@@ -41,7 +44,7 @@ var CMTV_Code = window.CMTV_Code || {};
         skipInit: false,
         visibleInit: function ()
         {
-            if (this.$target.height() <= 0)
+            if (this.target.offsetHeight <= 0)
             {
                 return;
             }
@@ -55,20 +58,20 @@ var CMTV_Code = window.CMTV_Code || {};
 
             this.eCodeBlockH.init();
 
-            if (this.getHeight(this.$pre) > this.getHeight(this.$codeContainer))
+            if (this.getHeight(this.pre) > this.getHeight(this.codeContainer))
             {
-                var scrollbarAdd = (this.getWidth(this.$code) > this.getWidth(this.$pre)) ? 15 : 0;
+                var scrollbarAdd = (this.getWidth(this.code) > this.getWidth(this.pre)) ? 15 : 0;
 
-                this.maxHeight = this.getHeight(this.$pre) + this.getPadding(this.$codeContainer).vertical + scrollbarAdd;
-                this.minHeight = this.getHeight(this.$codeContainer, true);
+                this.maxHeight = this.getHeight(this.pre) + this.getPadding(this.codeContainer).vertical + scrollbarAdd;
+                this.minHeight = this.getHeight(this.codeContainer, true);
 
-                this.$codeContainer.css({
-                    height:         this.getHeight(this.$codeContainer, true) + 'px',
+                this.codeContainer.css({
+                    height:         this.getHeight(this.codeContainer, true) + 'px',
                     'min-height':   this.minHeight + 'px',
                     'max-height':   this.maxHeight + 'px'
                 });
 
-                this.resizeButtons.$expand.removeClass('action--hidden');
+                this.resizeButtons.expand.classList.remove('action--hidden');
                 this.resizerH.visibleInit();
             }
 
@@ -80,18 +83,21 @@ var CMTV_Code = window.CMTV_Code || {};
         registerVisibleCatcher: function ()
         {
             var hidden = null;
+            var current = this.target.parentElement;
 
-            this.$target.parents().each(function ()
+            while (current)
             {
-                if ($(this).is(':hidden'))
+                if (current.offsetParent === null)
                 {
-                    hidden = this;
+                    hidden = current;
                 }
-            });
+
+                current = current.parentElement;
+            }
 
             if (hidden)
             {
-                new MutationObserver(XF.proxy(this, 'visibleInit')).observe(hidden, { attributes: true });
+                new MutationObserver(this.visibleInit.bind(this)).observe(hidden, { attributes: true });
             }
             else
             {
@@ -101,14 +107,28 @@ var CMTV_Code = window.CMTV_Code || {};
 
         // Heights
 
-        getHeight: function ($element, inner = false)
+        getHeight: function (element, inner = false)
         {
-            return inner ? $element.innerHeight() : $element.height();
+            if (inner)
+            {
+                return element.clientHeight;
+            }
+            else
+            {
+                return element.offsetHeight;
+            }
         },
 
-        getWidth: function ($element, inner = false)
+        getWidth: function (element, inner = false)
         {
-            return inner ? $element.innerWidth() : $element.width();
+            if (inner)
+            {
+                return element.clientWidth;
+            }
+            else
+            {
+                return element.offsetWidth;
+            }
         },
 
         getPadding: function ($element)
@@ -134,23 +154,26 @@ var CMTV_Code = window.CMTV_Code || {};
         {
             this._init();
 
-            Prism.highlightElement(this.$target.find('code')[0]);
+            let code = this.target.querySelector('code');
+            Prism.highlightElement(code);
 
-            var preWidth = this.$target.width(),
-                codeWidth = this.$target.find('code').width(),
-                lineHighlight = this.$target.find('.line-highlight'),
-                targetWidth = codeWidth + this.$target.innerWidth() - preWidth;
+            var preWidth = this.target.offsetWidth,
+                codeWidth = code.offsetWidth,
+                lineHighlight = this.target.querySelector('.line-highlight'),
+                targetWidth = codeWidth + this.target.offsetWidth - preWidth;
 
-            lineHighlight.css('min-width', targetWidth);
-
-            if (codeWidth > preWidth)
+            if (lineHighlight != null)
             {
-                lineHighlight.width(targetWidth);
+                lineHighlight.style.minWidth = targetWidth + 'px';
+
+                if (codeWidth > preWidth)
+                {
+                    lineHighlight.style.width = targetWidth + 'px';
+                }
             }
         }
     });
 
     XF.Element.register('CMTV-code-block', 'CMTV_Code.CodeBlock');
     XF.Element.register('CMTV-code-block-extend', 'CMTV_Code.CodeBlockExtend');
-})
-(jQuery);
+})(window, document)

@@ -1,6 +1,6 @@
 var CMTV_Code = window.CMTV_Code || {};
 
-(function ($, window)
+((window, document) =>
 {
     "use strict";
 
@@ -11,22 +11,29 @@ var CMTV_Code = window.CMTV_Code || {};
 
         init: function ()
         {
-            this.codeBlockH = XF.Element.getHandler(this.$target.closest('.bbCodeBlock--code'), 'CMTV-code-block');
+            this.codeBlockH = XF.Element.getHandler(this.target.closest('.bbCodeBlock--code'), 'CMTV-code-block');
         },
 
         visibleInit: function ()
         {
-            this.$target.removeClass('resizer--hidden');
-            this.$target.on('mousedown touchstart', XF.proxy(this, 'onResizeBegin'));
+            this.target.classList.remove('resizer--hidden');
+
+            XF.on(this.target, 'mousedown', this.onResizeBegin.bind(this));
+            XF.on(this.target, 'touchstart', this.onResizeBegin.bind(this));
         },
 
         onResizeBegin: function (e)
         {
-            $('body').addClass('CMTV_Code_resizing');
+            document.body.classList.add('CMTV_Code_resizing');
 
-            var cursorY = this.getCursorPos(e);
+            const cursorY = this.getCursorPos(e);
 
-            this.gripPos = cursorY - this.codeBlockH.$codeContainer.offset().top - this.codeBlockH.$codeContainer.outerHeight();
+            const container = this.codeBlockH.codeContainer;
+            const containerRect = container.getBoundingClientRect();
+            const containerTop = containerRect.top + window.scrollY;
+            const containerHeight = container.offsetHeight;
+
+            this.gripPos = cursorY - containerTop - containerHeight;
 
             window.addEventListener('mousemove', this, false);
             window.addEventListener('mouseup', this, false);
@@ -55,7 +62,7 @@ var CMTV_Code = window.CMTV_Code || {};
 
                 case 'mouseup':
                 case 'touchend':
-                    $('body').removeClass('CMTV_Code_resizing');
+                    document.body.classList.remove('CMTV_Code_resizing');
 
                     window.removeEventListener('mousemove', this, false);
                     window.removeEventListener('mouseup', this, false);
@@ -93,5 +100,4 @@ var CMTV_Code = window.CMTV_Code || {};
     });
 
     XF.Element.register('CMTV-code-block-resizer', 'CMTV_Code.CodeBlock_Resizer');
-})
-(jQuery, window);
+})(window, document)
